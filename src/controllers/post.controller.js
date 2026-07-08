@@ -2,6 +2,7 @@ const postModel = require("../models/post.model")
 const ImageKit = require('@imagekit/nodejs')
 const { toFile } = require('@imagekit/nodejs')
 const jwt = require("jsonwebtoken");
+const likeModel = require("../models/like.model");
 
 const imagekit = new ImageKit({
     privateKey: process.env.IMAGEKIT_PRIVATE_KEY
@@ -63,8 +64,46 @@ async function getPostDetailsController(req,res) {
     })
 }
 
+async function likePostController(req, res) {
+    const username = req.user.username;
+    const postId = req.params.postId;
+
+    // Check if post exists
+    const post = await postModel.findById(postId);
+
+    if (!post) {
+        return res.status(404).json({
+            message: "Post not found"
+        });
+    }
+
+    // Check if already liked
+    const alreadyLiked = await likeModel.findOne({
+        post: postId,
+        user: username
+    });
+
+    if (alreadyLiked) {
+        return res.status(409).json({
+            message: "You already liked this post"
+        });
+    }
+
+    // Create like
+    const like = await likeModel.create({
+        post: postId,
+        user: username
+    });
+
+    res.status(201).json({
+        message: "Post liked successfully",
+        like
+    });
+}
+
 module.exports = {
     createPostController,
     getPostController,
-    getPostDetailsController
+    getPostDetailsController,
+    likePostController
 }
